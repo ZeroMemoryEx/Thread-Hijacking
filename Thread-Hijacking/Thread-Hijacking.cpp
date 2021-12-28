@@ -126,7 +126,7 @@ int main(void)
                                 print_good("EIP Hijacked succesfully : 0x%08x\n", context.Eip);
                                 if (ResumeThread(htd) != (DWORD)-0b01)
                                 {
-                                    print_good("hread Resumed succesfully : 0x%08x\n", context.Eip);
+                                    print_good("thread Resumed succesfully : 0x%08x\n", context.Eip);
                                     if ((WaitForSingleObject(htd, INFINITE) != 0x00000080L) || (0x00000000L) || (0x00000102L) || ((DWORD)0xFFFFFFFF))
                                         print_good("Thread finished Succesfully 0x%lX\n", htd);
                                     else
