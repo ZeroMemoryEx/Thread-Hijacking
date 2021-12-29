@@ -12,7 +12,7 @@ SetThreadContext, then ResumeThread respectively.
 * Find a thread ID of the thread we want to hijack in the target process. In our case, we will fetch the thread ID of the first thread in our target process.
 * Suspend the target thread - the thread we want to hijack (threadHijacked) with SuspendThread
 * Retrieve the target thread's context with GetThreadContext
-* Update the target thread's instruction pointer (in my case x68 EIP register / x64 RIP) to point to the shellcode, which was written into the target process's memory using WriteProcessMemory
+* Update the target thread's instruction pointer (in my case x86 EIP register / x64 RIP) to point to the shellcode, which was written into the target process's memory using WriteProcessMemory
 * Commit the hijacked thread's new context with SetThreadContext
 * Resume the hijacked thread with ResumeThread
 </br>
