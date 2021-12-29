@@ -128,7 +128,7 @@ int main(void)
         }
         print("[+] EIP hold: 0x%08x\n", context.Eip); 
         context.Eip = (DWORD)base;
-        if (SetThreadContext(htd, &context) == 0)
+        if (!SetThreadContext(htd, &context))
         {
             CloseHandle(proc);
             CloseHandle(htd);
@@ -143,7 +143,7 @@ int main(void)
             return -1;
         }
         print("[+] thread Resumed succesfully : 0x%08x\n", context.Eip);
-        if ((WaitForSingleObject(htd, INFINITE) == 0x00000080L) || (0x00000000L) || (0x00000102L) || ((DWORD)0xFFFFFFFF))
+        if ((pr = WaitForSingleObject(htd, INFINITE) == 0x00000080L) || (pr == 0x00000000L) || (pr == 0x00000102L) || (pr == (DWORD)0xFFFFFFFF))
         {
             CloseHandle(proc);
             CloseHandle(htd);
