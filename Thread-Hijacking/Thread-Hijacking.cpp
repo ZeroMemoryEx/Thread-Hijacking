@@ -122,6 +122,7 @@ int main(void)
         }
         if (!GetThreadContext(htd, &context))
         {
+            ResumeThread(htd);
             CloseHandle(proc);
             CloseHandle(htd);
             return -1;
@@ -130,6 +131,7 @@ int main(void)
         context.Eip = (DWORD)base;
         if (!SetThreadContext(htd, &context))
         {
+            ResumeThread(htd);
             CloseHandle(proc);
             CloseHandle(htd);
             return -1;
